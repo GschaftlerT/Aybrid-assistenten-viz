@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Greenmedical – Assistenten-Übersicht</title>
+  <title>AyBrid – Assistenten-Übersicht</title>
 
   <!-- ═══════════════════════════════════════════════════════════
        SCHRIFT: Plus Jakarta Sans via Google Fonts (kein Upload nötig)
@@ -143,7 +143,7 @@
   ═══════════════════════════════════════════════════════════ -->
   <div class="legend">
     <div class="legend-item"><div class="legend-dot" style="background:#1a2e4a"></div>Team</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#ed008a"></div>übergreifend → direkt an Greenmedical</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#ed008a"></div>übergreifend → direkt an AyBrid</div>
     <div class="legend-item"><div class="legend-dot" style="background:#b8860b"></div>teamspezifisch</div>
     <div class="legend-item"><div class="legend-dot" style="background:#00b5d9"></div>personenspezifisch</div>
   </div>
@@ -220,7 +220,7 @@ const COL = {
 };
 
 // Reihenfolge der Teams von links nach rechts
-const TEAMS = ['BD','Data','Product','HR','Finance','Legal','Marketing','Support','Key Acc.'];
+const TEAMS = ['Operations','Consulting Delivery','Research & Intelligence','Data','Legal & Compliance','Marketing'];
 
 // Sortierreihenfolge innerhalb eines Teams (übergreifend erscheint hier nie)
 const TYPE_ORDER = ['teamspezifisch','personenspezifisch'];
@@ -271,17 +271,23 @@ function getLines(name) {
    Alle Assistenten vom Typ 'übergreifend' haben team:'übergreifend'.
    Alle anderen haben ihr Team als String.
 ═══════════════════════════════════════════════════════════════ */
-const DEFAULT_DATA = [
-  { id:1, name:'Toolauswahl-Assistent',                  team:'übergreifend', type:'übergreifend' },
-  { id:2, name:'Erstellungs- und Optimierungsassistent', team:'übergreifend', type:'übergreifend' },
-  { id:3, name:'Weekly Report-Assistent',                team:'übergreifend', type:'übergreifend' },
-  { id:4, name:'HR-Onboarding-Assistent',                team:'übergreifend', type:'übergreifend' },
-  { id:5, name:'E-Mail-Formulierungshelfer',             team:'BD',           type:'personenspezifisch' },
-  { id:6, name:'Blogartikelersteller-Assistent',         team:'BD',           type:'personenspezifisch' },
-  { id:7, name:'Report-Assistent (biweekly)',            team:'BD',           type:'personenspezifisch' },
-  { id:8, name:'Dokumentationsassistent',                team:'Data',         type:'teamspezifisch' },
-  { id:9, name:'Aufgabenersteller',                      team:'Data',         type:'personenspezifisch' },
-];
+const DEFAULT_DATA = [{ id:1,  name:'Bruno',        team:'übergreifend', type:'übergreifend' },
+  { id:2,  name:'Monika',       team:'Operations',   type:'personenspezifisch' },
+  { id:3,  name:'Helga',        team:'übergreifend', type:'übergreifend' },
+  { id:4,  name:'Lena',         team:'Consulting Delivery', type:'personenspezifisch' },
+  { id:5,  name:'Karl',         team:'übergreifend', type:'übergreifend' },
+  { id:6,  name:'Felix',        team:'übergreifend', type:'übergreifend' },
+  { id:7,  name:'Dana',         team:'übergreifend', type:'übergreifend' },
+  { id:8,  name:'Lex',          team:'übergreifend', type:'übergreifend' },
+  { id:9,  name:'Disco Vera',   team:'Research & Intelligence', type:'personenspezifisch' },
+  { id:10, name:'Hansi',        team:'Marketing',    type:'personenspezifisch' },
+  { id:11, name:'Scout',        team:'übergreifend', type:'übergreifend' },
+  { id:12, name:'Viktor-Watch', team:'übergreifend', type:'übergreifend' },
+  { id:13, name:'Nora',         team:'übergreifend', type:'übergreifend' },
+  { id:14, name:'Viktor',       team:'übergreifend', type:'übergreifend' },
+  { id:15, name:'Olivia',       team:'übergreifend', type:'übergreifend' },
+  { id:16, name:'Finn',         team:'übergreifend', type:'übergreifend' },
+  { id:17, name:'Theo',         team:'übergreifend', type:'übergreifend' } ];
 
 /* ═══════════════════════════════════════════════════════════════
    DATENHALTUNG (localStorage)
@@ -378,8 +384,8 @@ function render() {
 
   /* ── Layout-Konstanten ── */
   const W = 680;                  // Gesamtbreite SVG
-  const ROOT_X = W / 2;          // Greenmedical-Knoten X-Mitte
-  const ROOT_Y = 70;             // Greenmedical-Knoten Y
+  const ROOT_X = W / 2;          // AyBrid-Knoten X-Mitte
+  const ROOT_Y = 70;             // AyBrid-Knoten Y
   const ÜBER_Y = 148;            // Y-Position übergreifende Assistenten
   const TEAM_Y = 230;            // Y-Position Team-Knoten
   const TEAM_LABEL_H = 28;       // Höhe des Team-Label-Bereichs unter Kreis
@@ -410,12 +416,12 @@ function render() {
   svg.setAttribute('width', '100%');
   svg.style.height = H + 'px';
 
-  /* ── 1. GREENMEDICAL ROOT ── */
-  addText(svg, ROOT_X, ROOT_Y - 20, 'Greenmedical', 15, '#1a1a2e', 'middle', 600);
+  /* ── 1. AyBrid ROOT ── */
+  addText(svg, ROOT_X, ROOT_Y - 20, 'AyBrid', 15, '#1a1a2e', 'middle', 600);
   addCircle(svg, ROOT_X, ROOT_Y, 16, COL.team);
 
   /* ── 2. ÜBERGREIFENDE ASSISTENTEN ──
-     Gleichmäßig verteilt, Verbindungslinie gestrichelt pink zu Greenmedical */
+     Gleichmäßig verteilt, Verbindungslinie gestrichelt pink zu AyBrid */
   const überCount = über.length;
   const überSpread = Math.min(überCount * 110, W - 80);
   const überStep = überCount > 1 ? überSpread / (überCount - 1) : 0;
