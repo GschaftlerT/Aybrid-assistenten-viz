@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Greenmedical – Assistenten-Übersicht</title>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SCHRIFT: Plus Jakarta Sans via Google Fonts (kein Upload nötig)
+  ═══════════════════════════════════════════════════════════ -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    /* ─── Reset & Basis ─── */
+    * { font-family: 'Plus Jakarta Sans', sans-serif; box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #ffffff; color: #1a1a2e; }
+    .app { display: flex; flex-direction: column; min-height: 100vh; }
+
+    /* ─── Toolbar (Eingabezeile oben) ─── */
+    .toolbar {
+      display: flex; align-items: center; gap: 8px;
+      padding: 12px 16px;
+      border-bottom: 0.5px solid #e0e0e0;
+      flex-wrap: wrap;
+      background: #fff;
+    }
+    .toolbar strong { font-size: 14px; font-weight: 600; color: #1a1a2e; }
+    .toolbar input[type=text], .toolbar select {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 13px; padding: 6px 10px;
+      border-radius: 8px; border: 0.5px solid #ccc;
+      background: #fff; color: #1a1a2e;
+    }
+    .toolbar input[type=text] { flex: 1; min-width: 150px; }
+
+    /* ─── Buttons ─── */
+    .btn {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 13px; font-weight: 500;
+      padding: 6px 14px; border-radius: 8px; cursor: pointer;
+      border: 0.5px solid #ccc;
+      background: #fff; color: #1a1a2e;
+      transition: background 0.15s;
+    }
+    .btn:hover { background: #f5f5f5; }
+    .btn.primary { background: #1a2e4a; color: #fff; border-color: #1a2e4a; }
+    .btn.primary:hover { background: #243d5e; }
+    .btn.danger { color: #c0392b; border-color: #e0b0ae; }
+    .btn.danger:hover { background: #fdf0ef; }
+    .btn.small { padding: 3px 9px; font-size: 11px; }
+
+    /* ─── Legende ─── */
+    .legend {
+      display: flex; gap: 16px; padding: 8px 16px;
+      border-bottom: 0.5px solid #e0e0e0;
+      flex-wrap: wrap; background: #fff;
+    }
+    .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #666; }
+    .legend-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+
+    /* ─── SVG Canvas ─── */
+    .canvas-wrap { overflow-x: auto; background: #fff; }
+    svg { display: block; }
+
+    /* ─── Assistenten-Liste unten ─── */
+    .list-panel { border-top: 0.5px solid #e0e0e0; padding: 12px 16px; background: #fff; }
+    .list-panel h4 {
+      margin-bottom: 10px; font-size: 12px; font-weight: 600;
+      color: #999; text-transform: uppercase; letter-spacing: .04em;
+    }
+    .assistant-row {
+      display: flex; align-items: center; gap: 8px;
+      padding: 5px 0; border-bottom: 0.5px solid #e0e0e0; font-size: 12px;
+    }
+    .assistant-row:last-child { border-bottom: none; }
+    .assistant-row .name { flex: 1; color: #1a1a2e; }
+    .tag {
+      font-size: 11px; color: #999; background: #f5f5f5;
+      padding: 2px 7px; border-radius: 10px;
+    }
+
+    /* ─── Bearbeitungs-Modal ─── */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.35);
+      align-items: center; justify-content: center; z-index: 100;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: #fff; border: 0.5px solid #ccc;
+      border-radius: 12px; padding: 20px 24px;
+      width: 320px; display: flex; flex-direction: column; gap: 12px;
+    }
+    .modal h3 { font-size: 15px; font-weight: 600; color: #1a1a2e; }
+    .modal label { font-size: 12px; color: #666; display: block; margin-bottom: 4px; }
+    .modal input, .modal select {
+      width: 100%; font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 13px; padding: 7px 10px; border-radius: 8px;
+      border: 0.5px solid #ccc; background: #fff; color: #1a1a2e;
+    }
+    .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px; }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ═══════════════════════════════════════════════════════════
+       TOOLBAR: Neuen Assistenten hinzufügen
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="toolbar">
+    <strong>Assistenten verwalten</strong>
+
+    <!-- Name des neuen Assistenten -->
+    <input type="text" id="inp-name" placeholder="Name des Assistenten">
+
+    <!-- Team-Auswahl (nur relevant wenn Typ ≠ übergreifend) -->
+    <select id="inp-team">
+      <option value="BD">BD</option>
+      <option value="Data">Data</option>
+      <option value="Product">Product</option>
+      <option value="HR">HR</option>
+      <option value="Finance">Finance</option>
+      <option value="Legal">Legal</option>
+      <option value="Marketing">Marketing</option>
+      <option value="Support">Support</option>
+      <option value="Key Acc.">Key Acc.</option>
+    </select>
+
+    <!-- Typ: übergreifend → kein Team; teamspezifisch / personenspezifisch → Team -->
+    <select id="inp-type">
+      <option value="übergreifend">übergreifend</option>
+      <option value="teamspezifisch">teamspezifisch</option>
+      <option value="personenspezifisch">personenspezifisch</option>
+    </select>
+
+    <button class="btn primary" onclick="addAssistant()">+ Hinzufügen</button>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       LEGENDE
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#1a2e4a"></div>Team</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#ed008a"></div>übergreifend → direkt an Greenmedical</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#b8860b"></div>teamspezifisch</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#00b5d9"></div>personenspezifisch</div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SVG-CANVAS: wird vollständig per JavaScript gerendert
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="canvas-wrap">
+    <svg id="main-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       LISTE aller Assistenten mit Bearbeiten / Löschen
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="list-panel">
+    <h4>Alle Assistenten</h4>
+    <div id="assistant-list"></div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       MODAL: Assistent bearbeiten
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="modal-overlay" id="edit-modal">
+    <div class="modal">
+      <h3>Assistent bearbeiten</h3>
+      <div>
+        <label>Name</label>
+        <input type="text" id="edit-name">
+      </div>
+      <div>
+        <label>Team (nur bei teamspezifisch / personenspezifisch)</label>
+        <select id="edit-team">
+          <option value="BD">BD</option>
+          <option value="Data">Data</option>
+          <option value="Product">Product</option>
+          <option value="HR">HR</option>
+          <option value="Finance">Finance</option>
+          <option value="Legal">Legal</option>
+          <option value="Marketing">Marketing</option>
+          <option value="Support">Support</option>
+          <option value="Key Acc.">Key Acc.</option>
+        </select>
+      </div>
+      <div>
+        <label>Typ</label>
+        <select id="edit-type">
+          <option value="übergreifend">übergreifend</option>
+          <option value="teamspezifisch">teamspezifisch</option>
+          <option value="personenspezifisch">personenspezifisch</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button class="btn" onclick="closeModal()">Abbrechen</button>
+        <button class="btn primary" onclick="saveEdit()">Speichern</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /.app -->
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   KONFIGURATION
+═══════════════════════════════════════════════════════════════ */
+
+const FONT = "'Plus Jakarta Sans', sans-serif";
+
+// Farbpalette
+const COL = {
+  team:   '#1a2e4a',  // dunkelblau — Team-Knoten
+  über:   '#ed008a',  // pink — übergreifende Assistenten
+  team_s: '#b8860b',  // amber — teamspezifisch
+  person: '#00b5d9',  // cyan — personenspezifisch
+};
+
+// Reihenfolge der Teams von links nach rechts
+const TEAMS = ['BD','Data','Product','HR','Finance','Legal','Marketing','Support','Key Acc.'];
+
+// Sortierreihenfolge innerhalb eines Teams (übergreifend erscheint hier nie)
+const TYPE_ORDER = ['teamspezifisch','personenspezifisch'];
+
+/* ═══════════════════════════════════════════════════════════════
+   ZEILENUMBRUCH-TABELLE
+   Für bekannte Assistentennamen: manuell gesetzte Zeilenumbrüche.
+   Neue Assistenten → automatische Trennung (siehe getLines()).
+═══════════════════════════════════════════════════════════════ */
+const LABEL_BREAKS = {
+  'Toolauswahl-Assistent':                  ['Toolauswahl-','Assistent'],
+  'Erstellungs- und Optimierungsassistent': ['Erstellungs-','und Optimie-','rungsassistent'],
+  'Weekly Report-Assistent':                ['Weekly','Report-','Assistent'],
+  'HR-Onboarding-Assistent':                ['HR-','Onboarding-','Assistent'],
+  'E-Mail-Formulierungshelfer':             ['E-Mail-','Formulierungs-','helfer'],
+  'Blogartikelersteller-Assistent':         ['Blogartikel-','ersteller-','Assistent'],
+  'Report-Assistent (biweekly)':            ['Report-','Assistent','(biweekly)'],
+  'Dokumentationsassistent':                ['Doku-','mentations-','assistent'],
+  'Aufgabenersteller':                      ['Aufgaben-','ersteller'],
+};
+
+/**
+ * Gibt ein Array von Anzeigezeilen für einen Assistentennamen zurück.
+ * Nutzt LABEL_BREAKS wenn vorhanden, sonst automatische Trennung.
+ */
+function getLines(name) {
+  if (LABEL_BREAKS[name]) return LABEL_BREAKS[name];
+  // Automatisch: bei Leerzeichen in zwei Hälften teilen
+  const words = name.split(' ');
+  if (words.length >= 2) {
+    const mid = Math.ceil(words.length / 2);
+    return [words.slice(0, mid).join(' '), words.slice(mid).join(' ')];
+  }
+  // Automatisch: am ersten Bindestrich trennen
+  const hyph = name.indexOf('-');
+  if (hyph > 0 && hyph < name.length - 1) {
+    const p1 = name.slice(0, hyph + 1);
+    const p2 = name.slice(hyph + 1);
+    const h2 = p2.indexOf('-');
+    if (h2 > 0) return [p1, p2.slice(0, h2 + 1), p2.slice(h2 + 1)];
+    return [p1, p2];
+  }
+  return [name];
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   AUSGANGSDATEN
+   Alle Assistenten vom Typ 'übergreifend' haben team:'übergreifend'.
+   Alle anderen haben ihr Team als String.
+═══════════════════════════════════════════════════════════════ */
+const DEFAULT_DATA = [
+  { id:1, name:'Toolauswahl-Assistent',                  team:'übergreifend', type:'übergreifend' },
+  { id:2, name:'Erstellungs- und Optimierungsassistent', team:'übergreifend', type:'übergreifend' },
+  { id:3, name:'Weekly Report-Assistent',                team:'übergreifend', type:'übergreifend' },
+  { id:4, name:'HR-Onboarding-Assistent',                team:'übergreifend', type:'übergreifend' },
+  { id:5, name:'E-Mail-Formulierungshelfer',             team:'BD',           type:'personenspezifisch' },
+  { id:6, name:'Blogartikelersteller-Assistent',         team:'BD',           type:'personenspezifisch' },
+  { id:7, name:'Report-Assistent (biweekly)',            team:'BD',           type:'personenspezifisch' },
+  { id:8, name:'Dokumentationsassistent',                team:'Data',         type:'teamspezifisch' },
+  { id:9, name:'Aufgabenersteller',                      team:'Data',         type:'personenspezifisch' },
+];
+
+/* ═══════════════════════════════════════════════════════════════
+   DATENHALTUNG (localStorage)
+═══════════════════════════════════════════════════════════════ */
+let data = [];
+let nextId = 10;
+let editingId = null;
+
+function load() {
+  try {
+    const raw = localStorage.getItem('gm_assistants_v9');
+    if (raw) {
+      const p = JSON.parse(raw);
+      data = p.data;
+      nextId = p.nextId;
+    } else {
+      data = JSON.parse(JSON.stringify(DEFAULT_DATA));
+    }
+  } catch(e) {
+    data = JSON.parse(JSON.stringify(DEFAULT_DATA));
+  }
+}
+
+function save() {
+  try {
+    localStorage.setItem('gm_assistants_v9', JSON.stringify({ data, nextId }));
+  } catch(e) { /* silent */ }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   HILFSFUNKTIONEN
+═══════════════════════════════════════════════════════════════ */
+
+/** Gibt die Farbe für einen Assistenten-Typ zurück */
+function typeColor(type) {
+  if (type === 'übergreifend')    return COL.über;
+  if (type === 'teamspezifisch')  return COL.team_s;
+  return COL.person;
+}
+
+/** Sortiert Team-Assistenten: teamspezifisch vor personenspezifisch */
+function sortTeamAssistants(arr) {
+  return [...arr].sort((a, b) => TYPE_ORDER.indexOf(a.type) - TYPE_ORDER.indexOf(b.type));
+}
+
+/** SVG-Element erzeugen */
+function svgEl(tag, attrs) {
+  const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+  return el;
+}
+
+/** SVG-Text hinzufügen */
+function addText(svg, x, y, txt, size, fill, anchor = 'middle', weight = 400) {
+  const el = svgEl('text', {
+    x, y,
+    'text-anchor': anchor,
+    'font-size': size,
+    fill,
+    'font-family': FONT,
+    'font-weight': weight,
+  });
+  el.textContent = txt;
+  svg.appendChild(el);
+  return el;
+}
+
+/** SVG-Linie hinzufügen */
+function addLine(svg, x1, y1, x2, y2, stroke, dash = '', w = 0.7) {
+  svg.appendChild(svgEl('line', {
+    x1, y1, x2, y2, stroke,
+    'stroke-width': w,
+    'stroke-dasharray': dash,
+  }));
+}
+
+/** SVG-Kreis hinzufügen */
+function addCircle(svg, cx, cy, r, fill) {
+  svg.appendChild(svgEl('circle', { cx, cy, r, fill }));
+}
+
+/** SVG-Rechteck hinzufügen (als Hintergrund hinter Text) */
+function addRect(svg, x, y, w, h, fill, rx = 3, opacity = 1) {
+  svg.appendChild(svgEl('rect', { x, y, width: w, height: h, fill, rx, opacity }));
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   HAUPT-RENDER-FUNKTION
+   Zeichnet das komplette SVG-Diagramm neu.
+═══════════════════════════════════════════════════════════════ */
+function render() {
+  const svg = document.getElementById('main-svg');
+  svg.innerHTML = ''; // Canvas leeren
+
+  /* ── Layout-Konstanten ── */
+  const W = 680;                  // Gesamtbreite SVG
+  const ROOT_X = W / 2;          // Greenmedical-Knoten X-Mitte
+  const ROOT_Y = 70;             // Greenmedical-Knoten Y
+  const ÜBER_Y = 148;            // Y-Position übergreifende Assistenten
+  const TEAM_Y = 230;            // Y-Position Team-Knoten
+  const TEAM_LABEL_H = 28;       // Höhe des Team-Label-Bereichs unter Kreis
+  const FIRST_NODE_EXTRA_GAP = 18; // Zusätzlicher Abstand: Team-Label → erster Assistent
+  const LINE_H = 12;             // Zeilenhöhe bei mehrzeiligen Labels
+  const TEXT_TOP_GAP = 9;        // Abstand: Assistenten-Kreis-Unterkante → erste Textzeile
+  const NODE_BOTTOM_GAP = 14;    // Abstand: letzte Textzeile → nächster Assistenten-Kreis
+
+  /* ── Team-Positionen (gleichmäßig verteilt) ── */
+  const spacing = (W - 60) / (TEAMS.length - 1);
+  const teamX = TEAMS.map((_, i) => 30 + i * spacing);
+
+  /* ── Daten aufteilen ── */
+  const über = data.filter(d => d.type === 'übergreifend');
+  const byTeam = {};
+  TEAMS.forEach(t => {
+    byTeam[t] = sortTeamAssistants(data.filter(d => d.team === t && d.type !== 'übergreifend'));
+  });
+
+  /* ── Höhe berechnen ── */
+  function nodeSlotH(name) {
+    return 11 + TEXT_TOP_GAP + getLines(name).length * LINE_H + NODE_BOTTOM_GAP;
+  }
+  const maxTeamH = Math.max(...TEAMS.map(t => byTeam[t].reduce((s, a) => s + nodeSlotH(a.name), 0)), 0);
+  const H = TEAM_Y + TEAM_LABEL_H + FIRST_NODE_EXTRA_GAP + maxTeamH + 50;
+
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.setAttribute('width', '100%');
+  svg.style.height = H + 'px';
+
+  /* ── 1. GREENMEDICAL ROOT ── */
+  addText(svg, ROOT_X, ROOT_Y - 20, 'Greenmedical', 15, '#1a1a2e', 'middle', 600);
+  addCircle(svg, ROOT_X, ROOT_Y, 16, COL.team);
+
+  /* ── 2. ÜBERGREIFENDE ASSISTENTEN ──
+     Gleichmäßig verteilt, Verbindungslinie gestrichelt pink zu Greenmedical */
+  const überCount = über.length;
+  const überSpread = Math.min(überCount * 110, W - 80);
+  const überStep = überCount > 1 ? überSpread / (überCount - 1) : 0;
+  const überStartX = ROOT_X - überSpread / 2;
+
+  über.forEach((a, i) => {
+    const ax = überStartX + i * überStep;
+    // Linie zuerst (damit Kreis darüber liegt)
+    addLine(svg, ROOT_X, ROOT_Y + 16, ax, ÜBER_Y - 8, COL.über, '4 3', 0.8);
+    // Kreis
+    addCircle(svg, ax, ÜBER_Y, 7, COL.über);
+    // Hintergrund-Rect + Text
+    const lines = getLines(a.name);
+    const bgW = 76, bgH = lines.length * LINE_H + 4;
+    addRect(svg, ax - bgW / 2, ÜBER_Y + 10, bgW, bgH, '#ffffff', 3, 0.95);
+    lines.forEach((l, li) => addText(svg, ax, ÜBER_Y + 16 + li * LINE_H, l, 10, COL.über));
+  });
+
+  /* ── 3. VERBINDUNGSLINIEN ROOT → TEAMS ── */
+  TEAMS.forEach((_, ti) => {
+    addLine(svg, ROOT_X, ROOT_Y + 16, teamX[ti], TEAM_Y - 13, '#cccccc', '', 0.7);
+  });
+
+  /* ── 4. TEAM-KREISE ── */
+  TEAMS.forEach((_, ti) => addCircle(svg, teamX[ti], TEAM_Y, 13, COL.team));
+
+  /* ── 5. TEAM-LABELS mit weißem Hintergrund ── */
+  TEAMS.forEach((t, ti) => {
+    const tx = teamX[ti];
+    const lw = t.length * 7 + 12;
+    const ly = TEAM_Y + 16;
+    addRect(svg, tx - lw / 2, ly, lw, 16, '#ffffff', 4, 1);
+    addText(svg, tx, ly + 11, t, 10, '#1a1a2e');
+  });
+
+  /* ── 6. ASSISTENTEN PRO TEAM ──
+     Erster Knoten startet unterhalb Team-Label + Extra-Gap.
+     Reihenfolge: teamspezifisch → personenspezifisch */
+  const assistantStartY = TEAM_Y + 13 + TEAM_LABEL_H + FIRST_NODE_EXTRA_GAP;
+
+  TEAMS.forEach((t, ti) => {
+    const tx = teamX[ti];
+    const assistants = byTeam[t];
+    if (!assistants.length) return;
+
+    // Stammlinie: Team-Kreis → erster Assistent
+    addLine(svg, tx, TEAM_Y + 13, tx, assistantStartY - 6, '#cccccc', '', 0.5);
+
+    let curY = assistantStartY - 6;
+
+    assistants.forEach(a => {
+      const lines = getLines(a.name);
+      const col = typeColor(a.type);
+      const nodeY = curY + 20;
+
+      // Verbindungslinie
+      addLine(svg, tx, curY, tx, nodeY - 6, col, '', 0.6);
+      // Assistenten-Kreis
+      addCircle(svg, tx, nodeY, 5.5, col);
+      // Hintergrund + Text-Zeilen
+      const bgW = 68, bgH = lines.length * LINE_H + 4;
+      addRect(svg, tx - bgW / 2, nodeY + TEXT_TOP_GAP - 1, bgW, bgH, '#ffffff', 3, 0.95);
+      lines.forEach((l, li) => addText(svg, tx, nodeY + TEXT_TOP_GAP + li * LINE_H + 8, l, 10, col));
+
+      // Nächste Y-Position
+      curY = nodeY + 6 + TEXT_TOP_GAP + lines.length * LINE_H + NODE_BOTTOM_GAP - 8;
+    });
+  });
+
+  /* ── 7. LISTE NEU RENDERN ── */
+  renderList();
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LISTE (unterhalb SVG)
+═══════════════════════════════════════════════════════════════ */
+function renderList() {
+  const el = document.getElementById('assistant-list');
+  if (!data.length) {
+    el.innerHTML = '<p style="font-size:12px;color:#999">Noch keine Assistenten.</p>';
+    return;
+  }
+  // Übergreifende zuerst, dann nach Team und Typ sortiert
+  const überList = data.filter(d => d.type === 'übergreifend');
+  const teamList = [...data.filter(d => d.type !== 'übergreifend')].sort((a, b) => {
+    const ti = TEAMS.indexOf(a.team) - TEAMS.indexOf(b.team);
+    if (ti !== 0) return ti;
+    return TYPE_ORDER.indexOf(a.type) - TYPE_ORDER.indexOf(b.type);
+  });
+
+  el.innerHTML = [...überList, ...teamList].map(a => `
+    <div class="assistant-row">
+      <div style="width:8px;height:8px;border-radius:50%;background:${typeColor(a.type)};flex-shrink:0;"></div>
+      <span class="name">${a.name}</span>
+      <span class="tag">${a.type === 'übergreifend' ? 'übergreifend' : a.team}</span>
+      <span style="font-size:11px;color:#999;">${a.type}</span>
+      <button class="btn small" onclick="openEdit(${a.id})">✏️</button>
+      <button class="btn small danger" onclick="deleteA(${a.id})">🗑</button>
+    </div>
+  `).join('');
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CRUD-OPERATIONEN
+═══════════════════════════════════════════════════════════════ */
+
+/** Neuen Assistenten hinzufügen */
+function addAssistant() {
+  const name = document.getElementById('inp-name').value.trim();
+  const team = document.getElementById('inp-team').value;
+  const type = document.getElementById('inp-type').value;
+  if (!name) { document.getElementById('inp-name').focus(); return; }
+  // Übergreifende Assistenten haben kein Team
+  const effectiveTeam = type === 'übergreifend' ? 'übergreifend' : team;
+  data.push({ id: nextId++, name, team: effectiveTeam, type });
+  save();
+  render();
+  document.getElementById('inp-name').value = '';
+}
+
+/** Assistenten löschen */
+function deleteA(id) {
+  data = data.filter(a => a.id !== id);
+  save();
+  render();
+}
+
+/** Bearbeitungs-Modal öffnen */
+function openEdit(id) {
+  editingId = id;
+  const a = data.find(d => d.id === id);
+  document.getElementById('edit-name').value = a.name;
+  document.getElementById('edit-team').value = TEAMS.includes(a.team) ? a.team : TEAMS[0];
+  document.getElementById('edit-type').value = a.type;
+  document.getElementById('edit-modal').classList.add('open');
+}
+
+/** Modal schließen */
+function closeModal() {
+  document.getElementById('edit-modal').classList.remove('open');
+  editingId = null;
+}
+
+/** Änderungen speichern */
+function saveEdit() {
+  const a = data.find(d => d.id === editingId);
+  const name = document.getElementById('edit-name').value.trim();
+  const type = document.getElementById('edit-type').value;
+  const team = document.getElementById('edit-team').value;
+  if (name) a.name = name;
+  a.type = type;
+  a.team = type === 'übergreifend' ? 'übergreifend' : team;
+  save();
+  render();
+  closeModal();
+}
+
+// Modal schließen bei Klick außerhalb
+document.getElementById('edit-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+/* ═══════════════════════════════════════════════════════════════
+   START
+═══════════════════════════════════════════════════════════════ */
+load();
+render();
+</script>
+</body>
+</html>
